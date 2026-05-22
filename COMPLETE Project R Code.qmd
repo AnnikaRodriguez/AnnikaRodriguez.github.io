@@ -1,0 +1,150 @@
+---
+title: "Project Data Vis&Comm"
+author: "Annika Rodriguez"
+format: html
+editor: visual
+---
+
+## Quarto
+
+```{r}
+library(tidyverse)
+library(highcharter)
+library(lubridate)
+library(scales)
+
+```
+
+```{r}
+youtube <- read.csv("~/youtube_clean.csv")
+```
+
+```{r}
+library(tidyverse)
+library(scales)
+
+youtube <- youtube |> 
+  mutate(title_length = nchar(title))
+
+ggplot(youtube, aes(x = title_length)) +
+  geom_histogram(binwidth = 5, fill = "red", color = "black", linewidth = 0.3) +
+  scale_x_continuous(breaks = seq(0, max(youtube$title_length), by = 10)) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Distribution of YouTube Trending Video Title Lengths",
+    x = "Title Length (Number of Characters)",
+    y = "Number of Trending Videos") +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 13),
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    panel.grid.minor = element_blank())
+
+```
+
+```{r}
+hour_labels_12 <- format(strptime(0:23, "%H"), "%I %p")
+
+heatmap_hour_engagement <- youtube |>
+  mutate(
+    publish_hour = as.numeric(publish_hour),
+    engagement_rate = (likes + comment_count) / views) |>
+  group_by(publish_hour) |>
+  summarize(
+    Avg_engagement = mean(engagement_rate, na.rm = TRUE) * 1000,
+    .groups = "drop")
+
+red_colors <- c("#FFEBEE", "#FFCDD2", "#EF9A9A", "#E57373", "#EF5350", "#D32F2F", "#B71C1C")
+explicit_stops <- color_stops(colors = red_colors)
+
+heatmap_hour_engagement |> 
+  hchart(
+    type = "heatmap",
+    hcaes(
+      x = publish_hour,
+      y = 1,
+      value = Avg_engagement)) |>
+  
+  hc_add_theme(hc_theme_538()) |>
+  
+  hc_colorAxis(
+    stops = explicit_stops,
+    labels = list(format = "{value}%")) |>
+  
+  hc_title(text = "🔥 Average Engagement Rate by Publish Hour") |>
+  
+  hc_xAxis(
+    title = list(text = "Publish Hour (12-hour clock)"),
+    categories = hour_labels_12) |>
+  
+  hc_yAxis(
+    title = list(text = ""),
+    labels = list(enabled = FALSE),
+    tickWidth = 0) |>
+  
+  hc_tooltip(
+    pointFormat = "<b>Publish Hour:</b> {point.category}<br>
+                   <b>Avg Engagement:</b> {point.value:.2f}%")
+
+```
+
+```{r}
+
+library(tidyverse)
+library(highcharter)
+
+
+youtube <- youtube |>
+  mutate(
+    publish_wday = factor(
+      publish_wday,
+      levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")))
+
+weekday_counts <- youtube |>
+  group_by(publish_wday) |>
+  summarize(video_count = n(), .groups = "drop")
+
+weekday_counts <- weekday_counts |>
+  mutate(color = "#D32F2F") 
+
+highchart() |>
+  hc_chart(type = "column") |>
+  
+  hc_add_series(
+    data = list_parse(
+      weekday_counts |>
+        select(name = publish_wday, y = video_count, color)),
+    name = "Trending Videos",
+    colorByPoint = TRUE) |>
+  
+  hc_colors(weekday_counts$color) |>
+  
+  hc_title(
+    text = "📅 Trending Video Publishing Patterns by Weekday",
+    style = list(fontWeight = "bold", fontSize = "20px")) |>
+  
+  hc_subtitle(
+    text = "Which days have the strongest visibility signal?",
+    style = list(fontSize = "13px", color = "grey40")) |>
+  
+  hc_xAxis(
+    categories = weekday_counts$publish_wday,
+    title = list(text = NULL),
+    labels = list(rotation = 0)) |>
+  
+  hc_yAxis(
+    title = list(text = "Number of Trending Videos"),
+    labels = list(format = "{value}")) |>
+  
+  hc_add_theme(hc_theme_google()) |>
+  
+  hc_plotOptions(
+    column = list(
+      dataLabels = list(
+        enabled = TRUE,
+        format = "<b>{point.y}</b>",
+        style = list(fontSize = "13px")),
+      borderRadius = 3)) |>
+  
+  hc_legend(enabled = FALSE)
+```
