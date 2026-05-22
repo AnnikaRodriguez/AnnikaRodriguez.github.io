@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Annika Rodriguez — Data Analytics Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f5f3;
+    --bg-tertiary: #efefec;
+    --text: #1a1a18;
+    --text-secondary: #6b6b67;
+    --border: rgba(0,0,0,0.12);
+    --border-secondary: rgba(0,0,0,0.22);
+    --border-primary: rgba(0,0,0,0.32);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font-mono: 'DM Mono', monospace;
+    --font-serif: 'Fraunces', serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --bg-secondary: #242422;
+      --bg-tertiary: #2c2c2a;
+      --text: #f0efe8;
+      --text-secondary: #9a9a94;
+      --border: rgba(255,255,255,0.1);
+      --border-secondary: rgba(255,255,255,0.18);
+      --border-primary: rgba(255,255,255,0.28);
+    }
+  }
+
+  body {
+    font-family: var(--font-mono);
+    background: var(--bg-tertiary);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    background: var(--bg);
+    border-radius: 16px;
+    border: 0.5px solid var(--border);
+    padding: 2.5rem 2.5rem 3rem;
+  }
+
+  /* Header */
+  .pf-header { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 1rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 0.5px solid var(--border); }
+  .pf-name { font-family: var(--font-serif); font-size: 36px; font-weight: 300; letter-spacing: -0.5px; margin-bottom: 4px; color: var(--text); }
+  .pf-role { font-size: 11px; color: var(--text-secondary); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+  .pf-meta { display: flex; gap: 14px; flex-wrap: wrap; }
+  .pf-meta a { font-size: 11px; color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 4px; transition: color 0.15s; }
+  .pf-meta a:hover { color: var(--text); }
+  .pf-badges { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .badge { font-size: 10px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--border); white-space: nowrap; background: var(--bg-secondary); color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #3B6D11; animation: pulse 2s infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+  /* Stats */
+  .pf-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 2rem; }
+  .stat { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 12px 14px; }
+  .stat-val { font-size: 22px; font-weight: 500; margin-bottom: 2px; color: var(--text); }
+  .stat-lbl { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; }
+
+  /* Nav */
+  .pf-nav { display: flex; margin-bottom: 2rem; border-bottom: 0.5px solid var(--border); }
+  .nav-tab { font-family: var(--font-mono); font-size: 11px; padding: 8px 14px; cursor: pointer; border: none; background: none; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: all 0.15s; }
+  .nav-tab.active { color: var(--text); border-bottom-color: var(--text); }
+  .nav-tab:hover:not(.active) { color: var(--text); }
+
+  .pf-section { display: none; }
+  .pf-section.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)} }
+
+  /* Projects */
+  .proj-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .filter-btn { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border: 0.5px solid var(--border); border-radius: 20px; background: none; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; text-transform: uppercase; letter-spacing: 1px; }
+  .filter-btn.active, .filter-btn:hover { background: var(--bg-secondary); color: var(--text); border-color: var(--border-secondary); }
+
+  .proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .proj-grid { grid-template-columns: 1fr; } .pf-header { grid-template-columns: 1fr; } .pf-badges { align-items: flex-start; } .pf-stats { grid-template-columns: repeat(2,1fr); } }
+  .proj-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem 1.2rem; transition: border-color 0.15s; }
+  .proj-card:hover { border-color: var(--border-secondary); }
+  .proj-card.hidden { display: none; }
+  .proj-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tag { font-size: 9px; padding: 2px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.8px; }
+  .tag-r { background: #E6F1FB; color: #0C447C; }
+  .tag-py { background: #EAF3DE; color: #27500A; }
+  .tag-tab { background: #EEEDFE; color: #3C3489; }
+  .tag-ml { background: #FAECE7; color: #712B13; }
+  .tag-spss { background: #FAEEDA; color: #633806; }
+  .tag-dl { background: #FBEAF0; color: #72243E; }
+  .proj-title { font-family: var(--font-serif); font-size: 15px; font-weight: 600; margin-bottom: 6px; line-height: 1.3; color: var(--text); }
+  .proj-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 12px; }
+  .proj-impact { font-size: 11px; color: var(--text-secondary); padding: 7px 10px; background: var(--bg-secondary); border-radius: var(--radius-md); margin-bottom: 10px; }
+  .proj-impact span { color: var(--text); font-weight: 500; }
+  .proj-tools { font-size: 10px; color: var(--text-secondary); }
+
+  /* Expandable project details */
+  .proj-expand-btn { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); background: none; border: 0.5px solid var(--border); border-radius: 20px; padding: 4px 10px; cursor: pointer; transition: all 0.15s; width: fit-content; }
+  .proj-expand-btn:hover { color: var(--text); border-color: var(--border-secondary); background: var(--bg-secondary); }
+  .proj-expand-btn .arrow { transition: transform 0.2s; display: inline-block; }
+  .proj-expand-btn.open .arrow { transform: rotate(180deg); }
+  .proj-details { display: none; margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); }
+  .proj-details.open { display: block; animation: fadeIn 0.2s ease; }
+  .proj-detail-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .proj-detail-icon { font-size: 15px; color: var(--text-secondary); flex-shrink: 0; margin-top: 1px; }
+  .proj-detail-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 2px; }
+  .proj-detail-val { font-size: 11px; color: var(--text); }
+  .proj-detail-val a { color: var(--text-secondary); text-decoration: none; border-bottom: 0.5px solid var(--border-secondary); transition: color 0.15s; }
+  .proj-detail-val a:hover { color: var(--text); }
+  .proj-role-note { font-size: 11px; color: var(--text-secondary); background: var(--bg-secondary); border-radius: var(--radius-md); padding: 8px 10px; margin-bottom: 10px; }
+  .proj-role-note span { color: var(--text); font-weight: 500; }
+
+  /* Skills */
+  .skills-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  @media (max-width: 600px) { .skills-wrap { grid-template-columns: 1fr; } }
+  .sg-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-secondary); margin-bottom: 14px; }
+  .skill-row { margin-bottom: 11px; }
+  .skill-top { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; color: var(--text); }
+  .skill-pct { font-size: 11px; color: var(--text-secondary); }
+  .skill-bar { height: 3px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden; }
+  .skill-fill { height: 100%; border-radius: 2px; background: var(--text); transition: width 0.8s ease; }
+  .tools-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.5rem; }
+  .tool-pill { font-size: 11px; padding: 4px 10px; border: 0.5px solid var(--border); border-radius: 20px; color: var(--text-secondary); background: var(--bg-secondary); }
+
+  /* Experience */
+  .exp-list { display: flex; flex-direction: column; gap: 1.75rem; }
+  .exp-item { display: grid; grid-template-columns: 130px 1fr; gap: 1.5rem; }
+  @media (max-width: 600px) { .exp-item { grid-template-columns: 1fr; gap: 4px; } }
+  .exp-date { font-size: 11px; color: var(--text-secondary); padding-top: 2px; line-height: 1.5; }
+  .exp-role { font-size: 14px; font-weight: 500; margin-bottom: 2px; color: var(--text); }
+  .exp-company { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+  .exp-bullets { list-style: none; }
+  .exp-bullets li { font-size: 12px; color: var(--text-secondary); line-height: 1.65; padding-left: 14px; position: relative; margin-bottom: 3px; }
+  .exp-bullets li::before { content: '—'; position: absolute; left: 0; color: var(--border-secondary); }
+  .edu-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 0.5px solid var(--border); }
+  .edu-title-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-secondary); margin-bottom: 1rem; }
+  .edu-item { display: grid; grid-template-columns: 130px 1fr; gap: 1.5rem; margin-bottom: 1rem; }
+  @media (max-width: 600px) { .edu-item { grid-template-columns: 1fr; gap: 4px; } }
+  .edu-degree { font-size: 13px; font-weight: 500; margin-bottom: 2px; color: var(--text); }
+  .edu-school { font-size: 12px; color: var(--text-secondary); }
+
+  /* Contact */
+  .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 600px) { .contact-grid { grid-template-columns: 1fr; } }
+  .contact-card { display: flex; align-items: center; gap: 12px; border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.2rem; background: var(--bg); transition: border-color 0.15s; }
+  .contact-card:hover { border-color: var(--border-secondary); }
+  .contact-icon { font-size: 20px; color: var(--text-secondary); }
+  .contact-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-secondary); margin-bottom: 2px; }
+  .contact-val { font-size: 12px; font-weight: 500; color: var(--text); word-break: break-all; }
+  .relocate-note { margin-top: 1.25rem; padding: 12px 16px; background: var(--bg-secondary); border-radius: var(--radius-md); font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="sr-only">Annika Rodriguez — Data Analytics Portfolio</h1>
+
+  <div class="pf-header">
+    <div>
+      <p class="pf-name">Annika Rodriguez</p>
+      <p class="pf-role">Data Analytics · Machine Learning · Business Intelligence</p>
+      <div class="pf-meta">
+        <a href="mailto:annikarodriguez02@gmail.com"><i class="ti ti-mail" aria-hidden="true"></i> annikarodriguez02@gmail.com</a>
+        <a href="tel:2104802121"><i class="ti ti-phone" aria-hidden="true"></i> (210) 480-2121</a>
+        <a href="https://www.linkedin.com/in/annika-rodriguez-" target="_blank"><i class="ti ti-brand-linkedin" aria-hidden="true"></i> linkedin.com/in/annika-rodriguez-</a>
+      </div>
+    </div>
+    <div class="pf-badges">
+      <div class="badge"><div class="dot"></div> Open to opportunities</div>
+      <div class="badge"><i class="ti ti-map-pin" style="font-size:12px" aria-hidden="true"></i> Willing to relocate</div>
+      <div class="badge"><i class="ti ti-school" style="font-size:12px" aria-hidden="true"></i> MS graduating Aug 2026</div>
+    </div>
+  </div>
+
+  <div class="pf-stats">
+    <div class="stat"><div class="stat-val">7</div><div class="stat-lbl">Projects</div></div>
+    <div class="stat"><div class="stat-val">10+</div><div class="stat-lbl">Tools</div></div>
+    <div class="stat"><div class="stat-val">3</div><div class="stat-lbl">Industries</div></div>
+    <div class="stat"><div class="stat-val">2</div><div class="stat-lbl">Degrees</div></div>
+  </div>
+
+  <div class="pf-nav">
+    <button class="nav-tab active" onclick="switchTab('projects', this)">Projects</button>
+    <button class="nav-tab" onclick="switchTab('skills', this)">Skills</button>
+    <button class="nav-tab" onclick="switchTab('experience', this)">Experience</button>
+    <button class="nav-tab" onclick="switchTab('contact', this)">Contact</button>
+  </div>
+
+  <!-- PROJECTS -->
+  <div id="tab-projects" class="pf-section active">
+    <div class="proj-filter">
+      <button class="filter-btn active" onclick="filterProj('all', this)">All</button>
+      <button class="filter-btn" onclick="filterProj('ml', this)">Machine Learning</button>
+      <button class="filter-btn" onclick="filterProj('viz', this)">Visualization</button>
+      <button class="filter-btn" onclick="filterProj('dl', this)">Deep Learning</button>
+      <button class="filter-btn" onclick="filterProj('analytics', this)">Analytics</button>
+    </div>
+    <div class="proj-grid">
+
+      <div class="proj-card" data-cat="ml">
+        <div class="proj-tags"><span class="tag tag-r">R</span><span class="tag tag-ml">Random Forest</span><span class="tag tag-ml">SMOTE</span><span class="tag tag-tab">Tableau</span></div>
+        <p class="proj-title">PFAS Groundwater Contamination Risk Prediction</p>
+        <p class="proj-desc">Cleaned and modeled 26,900 groundwater observations to predict high-risk PFAS contamination zones. Compared baseline and advanced ML models using ROC/AUC, F1-score, and confusion matrices. Applied SMOTE to address class imbalance.</p>
+        <div class="proj-impact"><span>Best model:</span> Random Forest · 0.9818 AUROC · ~93% sensitivity · identified geographic &amp; environmental risk drivers for California Water Board prioritization</div>
+        <p class="proj-tools">R · Random Forest · SVM · KNN · SMOTE · ggplot2 · caret · pROC</p>
+        <button class="proj-expand-btn" onclick="toggleDetails(this)">View files &amp; role <span class="arrow">▾</span></button>
+        <div class="proj-details">
+          <div class="proj-role-note"><span>Group project (UTSA, 2025)</span> — My contributions: data exploration &amp; EDA, target encoding, train/test split, 5-fold CV setup, Random Forest model, SVM model, KNN model, ROC/AUC analysis, variable importance analysis, final model comparison, written interpretation throughout</div>
+          <div class="proj-detail-row">
+            <i class="ti ti-file-description proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">Research Poster</div>
+              <div class="proj-detail-val"><a href="PFAS_Groundwater_Contamination_Poster.pdf" target="_blank">PFAS_Groundwater_Contamination_Poster.pdf ↗</a></div>
+            </div>
+          </div>
+          <div class="proj-detail-row">
+            <i class="ti ti-code proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">My Code (R Markdown)</div>
+              <div class="proj-detail-val"><a href="PFAS_in_California_Groundwater.Rmd" target="_blank">PFAS_in_California_Groundwater.Rmd ↗</a> — <em style="font-size:10px;color:var(--text-secondary)">upload to GitHub to activate link</em></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="proj-card" data-cat="ml">
+        <div class="proj-tags"><span class="tag tag-r">R</span><span class="tag tag-ml">Random Forest</span><span class="tag tag-ml">0.982 AUC</span></div>
+        <p class="proj-title">Google Play Store Success Prediction</p>
+        <p class="proj-desc">Merged app metadata and user review datasets (8,196 apps, 19 variables). Engineered sentiment, engagement, and pricing features. Ran hypothesis tests (t-test, ANOVA, correlation) and built ML classifiers to identify app success drivers.</p>
+        <div class="proj-impact"><span>94.8% accuracy · 0.982 AUC</span> — reviews, sentiment subjectivity, and ratings were the top predictors; Random Forest outperformed logistic regression across all metrics</div>
+        <p class="proj-tools">R · Random Forest · Logistic Regression · ggplot2 · corrplot · dplyr · pROC</p>
+        <button class="proj-expand-btn" onclick="toggleDetails(this)">View files &amp; role <span class="arrow">▾</span></button>
+        <div class="proj-details">
+          <div class="proj-role-note"><span>Solo project</span> — all data cleaning, EDA, hypothesis testing, feature engineering, modeling, and presentation completed independently</div>
+          <div class="proj-detail-row">
+            <i class="ti ti-presentation proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">Presentation Slides</div>
+              <div class="proj-detail-val"><a href="What_Makes_an_App_Successful_A_Machine_Learning_Analysis_of_the_Google_Play_Store.pdf" target="_blank">What_Makes_an_App_Successful.pdf ↗</a></div>
+            </div>
+          </div>
+          <div class="proj-detail-row">
+            <i class="ti ti-code proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">R Code (R Markdown)</div>
+              <div class="proj-detail-val"><a href="GooglePlayApps.Rmd" target="_blank">GooglePlayApps.Rmd ↗</a></div>
+            </div>
+          </div>
+          <div class="proj-detail-row">
+            <i class="ti ti-file-type-html proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">Full HTML Report</div>
+              <div class="proj-detail-val"><a href="GooglePlayApps.html" target="_blank">GooglePlayApps.html ↗</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="proj-card" data-cat="dl">
+        <div class="proj-tags"><span class="tag tag-py">Python</span><span class="tag tag-dl">Deep Learning</span><span class="tag tag-ml">TensorFlow</span></div>
+        <p class="proj-title">Movie Revenue Success Prediction (Deep Learning)</p>
+        <p class="proj-desc">Built and compared a feedforward neural network against a logistic regression baseline to predict movie financial success using TMDB data (~5,000 movies). Features included budget, popularity, runtime, and vote average with 80/20 train-test split and standardized scaling.</p>
+        <div class="proj-impact"><span>Neural net: 82.4% accuracy · F1 0.81</span> — outperformed logistic regression (80%) across all metrics, demonstrating nonlinear modeling gains in entertainment forecasting</div>
+        <p class="proj-tools">Python · TensorFlow/Keras · Scikit-learn · Pandas · NumPy · Google Colab</p>
+        <button class="proj-expand-btn" onclick="toggleDetails(this)">View files &amp; role <span class="arrow">▾</span></button>
+        <div class="proj-details">
+          <div class="proj-role-note"><span>Group project — team of 3 (UTSA)</span> — My contributions: data preprocessing &amp; cleaning, feature selection &amp; standardization, neural network architecture &amp; training, model evaluation (confusion matrix, accuracy, precision, recall, F1), results visualization</div>
+          <div class="proj-detail-row">
+            <i class="ti ti-presentation proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">Presentation Slides</div>
+              <div class="proj-detail-val"><a href="MovieSuccessPrediction.pdf" target="_blank">MovieSuccessPrediction.pdf ↗</a></div>
+            </div>
+          </div>
+          <div class="proj-detail-row">
+            <i class="ti ti-code proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">My Code (Jupyter Notebook)</div>
+              <div class="proj-detail-val"><a href="Annika_Cloud__1_.ipynb" target="_blank">Annika_Cloud.ipynb ↗</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="proj-card" data-cat="viz">
+        <div class="proj-tags"><span class="tag tag-r">R</span><span class="tag tag-tab">Tableau</span><span class="tag tag-ml">ggplot2</span></div>
+        <p class="proj-title">YouTube Trending: What Rises to the Top?</p>
+        <p class="proj-desc">Cleaned and engineered features from large-scale YouTube trending data including engagement rate, publish timing, category, and creator attributes. Analyzed performance trends across categories, creators, and timeframes to identify key drivers of content visibility.</p>
+        <div class="proj-impact"><span>Key findings:</span> Entertainment &amp; Music dominate (27% &amp; 13%) · engagement peaks 5–9 PM · weekday uploads outperform weekends · a small group of top creators drive most trending activity</div>
+        <p class="proj-tools">R · ggplot2 · dplyr · Quarto</p>
+        <button class="proj-expand-btn" onclick="toggleDetails(this)">View files &amp; role <span class="arrow">▾</span></button>
+        <div class="proj-details">
+          <div class="proj-role-note"><span>Group project (UTSA)</span> — My contributions: data cleaning &amp; feature engineering, all visualizations (category distribution, creator rankings, trending by month, publish timing, engagement heatmap, views vs. likes, comment rate, title length), written analysis &amp; conclusions</div>
+          <div class="proj-detail-row">
+            <i class="ti ti-presentation proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">Presentation Slides</div>
+              <div class="proj-detail-val"><a href="YoutubeTrending.pdf" target="_blank">YoutubeTrending.pdf ↗</a></div>
+            </div>
+          </div>
+          <div class="proj-detail-row">
+            <i class="ti ti-code proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">R Code (Quarto)</div>
+              <div class="proj-detail-val"><a href="Project_R_Code.qmd" target="_blank">Project_R_Code.qmd ↗</a></div>
+            </div>
+          </div>
+          <div class="proj-detail-row">
+            <i class="ti ti-file-type-html proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">Full HTML Report</div>
+              <div class="proj-detail-val"><a href="Project_R_Code.html" target="_blank">Project_R_Code.html ↗</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="proj-card" data-cat="ml">
+        <div class="proj-tags"><span class="tag tag-r">R</span><span class="tag tag-ml">Random Forest</span><span class="tag tag-ml">Decision Trees</span></div>
+        <p class="proj-title">Customer Acquisition &amp; Retention Modeling</p>
+        <p class="proj-desc">Developed predictive models to forecast customer acquisition likelihood. Performed feature engineering and cross-validated multiple ML algorithms. Analyzed drivers of acquisition and retention for business strategy recommendations.</p>
+        <div class="proj-impact"><span>Actionable segmentation insights</span> — Random Forest &amp; logistic regression identified revenue and company size as top targeting variables</div>
+        <p class="proj-tools">R · Random Forest · Decision Trees · Logistic Regression · caret · Excel</p>
+        <button class="proj-expand-btn" onclick="toggleDetails(this)">View files &amp; role <span class="arrow">▾</span></button>
+        <div class="proj-details">
+          <div class="proj-role-note"><span>Solo project</span> — all data cleaning, feature engineering, cross-validation, modeling, and presentation completed independently</div>
+          <div class="proj-detail-row">
+            <i class="ti ti-presentation proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">Presentation Slides</div>
+              <div class="proj-detail-val"><a href="CustomerAcquisitionReport.pdf" target="_blank">CustomerAcquisitionReport.pdf ↗</a></div>
+            </div>
+          </div>
+          <div class="proj-detail-row">
+            <i class="ti ti-code proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">R Code (R Markdown)</div>
+              <div class="proj-detail-val"><a href="CustomerAcquisition.Rmd" target="_blank">CustomerAcquisition.Rmd ↗</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="proj-card" data-cat="analytics">
+        <div class="proj-tags"><span class="tag tag-spss">SPSS</span><span class="tag tag-spss">Regression</span><span class="tag tag-spss">Survey Analysis</span></div>
+        <p class="proj-title">Dairy Queen Consumer Purchase Intention Analysis</p>
+        <p class="proj-desc">Conducted regression analysis on survey data to identify factors driving customer purchase intention. Tested marketing hypotheses around pricing, service quality, menu diversity, and cleanliness in a fast-food consumer context.</p>
+        <div class="proj-impact"><span>Key finding:</span> Service quality was the strongest predictor of purchase intention &amp; customer loyalty</div>
+        <p class="proj-tools">SPSS · Regression Analysis · Survey Analysis · Excel</p>
+        <button class="proj-expand-btn" onclick="toggleDetails(this)">View files &amp; role <span class="arrow">▾</span></button>
+        <div class="proj-details">
+          <div class="proj-role-note"><span>Group project (Texas Tech, 2024)</span> — My contributions: SPSS analysis, hypothesis 1 write-up, hypothesis 2 write-up, hypothesis 3 write-up</div>
+          <div class="proj-detail-row">
+            <i class="ti ti-file-description proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">Research Report</div>
+              <div class="proj-detail-val"><a href="DairyQueenReport.pdf" target="_blank">DairyQueenReport.pdf ↗</a></div>
+            </div>
+          </div>
+          <div class="proj-detail-row">
+            <i class="ti ti-chart-bar proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">SPSS Output (PDF)</div>
+              <div class="proj-detail-val"><a href="DairyQueenSPSSAnalysis.pdf" target="_blank">DairyQueenSPSSAnalysis.pdf ↗</a></div>
+            </div>
+          </div>
+          <div class="proj-detail-row">
+            <i class="ti ti-database proj-detail-icon" aria-hidden="true"></i>
+            <div>
+              <div class="proj-detail-label">SPSS Data File</div>
+              <div class="proj-detail-val"><a href="DairyQueenSPSSAnalysis.spv" target="_blank">DairyQueenSPSSAnalysis.spv ↗</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SKILLS -->
+  <div id="tab-skills" class="pf-section">
+    <div class="skills-wrap">
+      <div>
+        <p class="sg-title">Programming &amp; Modeling</p>
+        <div class="skill-row"><div class="skill-top"><span>R</span><span class="skill-pct">90%</span></div><div class="skill-bar"><div class="skill-fill" style="width:90%"></div></div></div>
+        <div class="skill-row"><div class="skill-top"><span>Python</span><span class="skill-pct">78%</span></div><div class="skill-bar"><div class="skill-fill" style="width:78%"></div></div></div>
+        <div class="skill-row"><div class="skill-top"><span>SQL</span><span class="skill-pct">75%</span></div><div class="skill-bar"><div class="skill-fill" style="width:75%"></div></div></div>
+        <div class="skill-row"><div class="skill-top"><span>SAS</span><span class="skill-pct">65%</span></div><div class="skill-bar"><div class="skill-fill" style="width:65%"></div></div></div>
+        <div class="skill-row"><div class="skill-top"><span>SPSS</span><span class="skill-pct">70%</span></div><div class="skill-bar"><div class="skill-fill" style="width:70%"></div></div></div>
+      </div>
+      <div>
+        <p class="sg-title">Visualization &amp; BI</p>
+        <div class="skill-row"><div class="skill-top"><span>Tableau</span><span class="skill-pct">85%</span></div><div class="skill-bar"><div class="skill-fill" style="width:85%"></div></div></div>
+        <div class="skill-row"><div class="skill-top"><span>Power BI</span><span class="skill-pct">60%</span></div><div class="skill-bar"><div class="skill-fill" style="width:60%"></div></div></div>
+        <div class="skill-row"><div class="skill-top"><span>ggplot2</span><span class="skill-pct">88%</span></div><div class="skill-bar"><div class="skill-fill" style="width:88%"></div></div></div>
+        <div class="skill-row"><div class="skill-top"><span>Excel</span><span class="skill-pct">85%</span></div><div class="skill-bar"><div class="skill-fill" style="width:85%"></div></div></div>
+      </div>
+    </div>
+    <div style="margin-top:2rem;">
+      <p class="sg-title">ML / AI Methods</p>
+      <div class="tools-list">
+        <span class="tool-pill">Random Forest</span>
+        <span class="tool-pill">Logistic Regression</span>
+        <span class="tool-pill">Decision Trees</span>
+        <span class="tool-pill">SVM</span>
+        <span class="tool-pill">Neural Networks</span>
+        <span class="tool-pill">SMOTE</span>
+        <span class="tool-pill">Cross-validation</span>
+        <span class="tool-pill">Feature Engineering</span>
+        <span class="tool-pill">ROC/AUC</span>
+        <span class="tool-pill">Sentiment Analysis</span>
+        <span class="tool-pill">TensorFlow/Keras</span>
+        <span class="tool-pill">scikit-learn</span>
+        <span class="tool-pill">caret</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPERIENCE -->
+  <div id="tab-experience" class="pf-section">
+    <div class="exp-list">
+      <div class="exp-item">
+        <span class="exp-date">May 2025 –<br>June 2025</span>
+        <div>
+          <p class="exp-role">Marketing Management Beta Tester</p>
+          <p class="exp-company">Western Governors University · Remote</p>
+          <ul class="exp-bullets">
+            <li>Evaluated assessment data, workflows, and course structures for a newly developed Marketing Management curriculum, identifying operational gaps and inefficiencies</li>
+            <li>Assessed usability, process flow, and alignment with learning objectives across course modules</li>
+            <li>Delivered structured, data-informed feedback to faculty and development teams to guide curriculum refinement</li>
+          </ul>
+        </div>
+      </div>
+      <div class="exp-item">
+        <span class="exp-date">Oct 2022 –<br>May 2025</span>
+        <div>
+          <p class="exp-role">Manager</p>
+          <p class="exp-company">Chris Simple Homes · Ruidoso, NM &amp; Lubbock, TX</p>
+          <ul class="exp-bullets">
+            <li>Managed daily operations across multiple properties including guest communication, booking coordination, and maintenance</li>
+            <li>Analyzed pricing, occupancy, and booking data to drive revenue optimization and marketing strategy decisions</li>
+            <li>Evaluated guest feedback and service outcomes to identify trends and improve customer satisfaction</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="edu-section">
+      <p class="edu-title-lbl">Education</p>
+      <div class="edu-item">
+        <span class="exp-date">Graduating<br>Aug 2026</span>
+        <div>
+          <p class="edu-degree">M.S. Data Analytics</p>
+          <p class="edu-school">The University of Texas at San Antonio · College of AI, Cyber, and Computing</p>
+        </div>
+      </div>
+      <div class="edu-item">
+        <span class="exp-date">Dec 2024</span>
+        <div>
+          <p class="edu-degree">BBA, Management &amp; Marketing</p>
+          <p class="edu-school">Texas Tech University · Rawls College of Business</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTACT -->
+  <div id="tab-contact" class="pf-section">
+    <div class="contact-grid">
+      <div class="contact-card">
+        <i class="ti ti-mail contact-icon" aria-hidden="true"></i>
+        <div><div class="contact-lbl">Email</div><div class="contact-val">annikarodriguez02@gmail.com</div></div>
+      </div>
+      <div class="contact-card">
+        <i class="ti ti-phone contact-icon" aria-hidden="true"></i>
+        <div><div class="contact-lbl">Phone</div><div class="contact-val">(210) 480-2121</div></div>
+      </div>
+      <div class="contact-card">
+        <i class="ti ti-brand-linkedin contact-icon" aria-hidden="true"></i>
+        <div><div class="contact-lbl">LinkedIn</div><div class="contact-val">linkedin.com/in/annika-rodriguez-</div></div>
+      </div>
+      <div class="contact-card">
+        <i class="ti ti-map-pin contact-icon" aria-hidden="true"></i>
+        <div><div class="contact-lbl">Location</div><div class="contact-val">San Antonio, TX · Open to relocation</div></div>
+      </div>
+    </div>
+    <div class="relocate-note">
+      <i class="ti ti-info-circle" style="font-size:16px;flex-shrink:0" aria-hidden="true"></i>
+      Currently completing M.S. in Data Analytics at UTSA (Aug 2026). Actively seeking full-time analyst roles and open to relocating anywhere.
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleDetails(btn) {
+  btn.classList.toggle('open');
+  const details = btn.nextElementSibling;
+  details.classList.toggle('open');
+}
+function switchTab(name, btn) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.pf-section').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+function filterProj(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.proj-card').forEach(c => {
+    if (cat === 'all' || c.dataset.cat === cat) c.classList.remove('hidden');
+    else c.classList.add('hidden');
+  });
+}
+</script>
+</body>
+</html>
