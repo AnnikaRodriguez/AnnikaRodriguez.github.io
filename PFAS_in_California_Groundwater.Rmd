@@ -1,0 +1,289 @@
+---
+title: "Annika's PFAS Code"
+author: "Annika Rodriguez"
+date: "2026-04-23"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(kernlab)
+library(pROC)
+
+df <- read.csv("pfas_cleaned.csv")
+
+str(df)
+summary(df)
+```
+
+The dataset consists of 26,900 groundwater observations with 10 variables, including environmental, geographic, and hydrological features. The predictors include factors such as precipitation, temperature, wind speed, air pollution (PM2.5 and NO₂), soil moisture, and groundwater recharge, along with spatial coordinates (latitude and longitude). The target variable is binary, indicating whether PFAS contamination exceeds a defined threshold.
+
+Initial exploration of the data revealed that approximately 29% of wells are classified as high contamination, while 71% are low contamination, indicating a moderate class imbalance. Additionally, several variables exhibit wide ranges and potential outliers, particularly PM2.5 and wind speed. These characteristics suggest that flexible, non-linear models such as Random Forest may be more appropriate than simple linear approaches for capturing complex environmental relationships.
+
+```{r}
+#target variable
+df$target <- ifelse(df$target == 1, "Yes", "No")
+
+df$target <- factor(df$target, levels = c("Yes", "No"))
+
+table(df$target)
+```
+
+The target variable was converted into a categorical factor to support classification modeling, with values labeled as “Yes” (high PFAS contamination) and “No” (low PFAS contamination). The distribution of the target variable shows that 7,777 observations fall into the “Yes” category, while 19,123 fall into the “No” category. This indicates a class imbalance, with approximately 29% of wells classified as contaminated and 71% as non-contaminated.
+
+This imbalance is important because it can bias models toward predicting the majority class. As a result, evaluation metrics such as accuracy alone may be misleading. To address this, more robust metrics such as sensitivity, specificity, and AUROC were considered when comparing model performance.
+
+```{r}
+#test and train split
+set.seed(123)
+
+train_index <- createDataPartition(df$target, p = 0.80, list = FALSE)
+
+train_data <- df[train_index, ]
+test_data  <- df[-train_index, ]
+
+table(train_data$target)
+table(test_data$target)
+
+#cross validation
+ctrl <- trainControl(method = "cv",
+                     number = 5,
+                     classProbs = TRUE,
+                     summaryFunction = twoClassSummary,
+                     savePredictions = "final")
+```
+
+The dataset was split into training (80%) and testing (20%) sets using stratified sampling to preserve the original class distribution of the target variable. This ensures that both datasets maintain a similar proportion of contaminated and non-contaminated wells, which is critical when working with imbalanced data.
+
+The resulting training set contained 6,222 contaminated wells and 15,299 non-contaminated wells, while the testing set contained 1,555 contaminated wells and 3,824 non-contaminated wells.
+
+To improve model reliability and reduce overfitting, 5-fold cross-validation was applied during model training. Additionally, class probabilities were computed and performance was evaluated using metrics such as sensitivity, specificity, and the area under the ROC curve (AUROC), which are more appropriate than accuracy for imbalanced classification problems.
+
+```{r}
+#yasmines code: logistic regression to compare to my models
+set.seed(123)
+
+log_model <- train(target ~ .,
+                   data = train_data,
+                   method = "glm",
+                   family = "binomial",
+                   metric = "ROC",
+                   trControl = ctrl)
+
+log_model
+```
+A logistic regression model was implemented as a baseline to predict PFAS contamination. The model was trained using 5-fold cross-validation and evaluated using AUROC, sensitivity, and specificity.
+
+The results showed an AUROC of 0.633, indicating limited predictive ability. More importantly, the model achieved a sensitivity of 0, meaning it failed to correctly identify any contaminated wells. At the same time, the specificity was 1, indicating that all non-contaminated wells were correctly classified.
+
+This suggests that the model is heavily biased toward predicting the majority class (non-contaminated wells), which is a common issue when working with imbalanced datasets. As a result, logistic regression is not suitable for this problem, as it fails to detect the minority class of interest. This limitation motivates the use of more flexible, non-linear models such as Random Forest and Support Vector Machine to improve predictive performance.
+
+```{r}
+#random forest
+set.seed(123)
+
+rf_model <- train(target ~ .,
+                  data = train_data,
+                  method = "rf",
+                  metric = "ROC",
+                  trControl = ctrl,
+                  tuneLength = 5)
+
+rf_model
+plot(rf_model)
+```
+
+A Random Forest model was implemented to improve predictive performance beyond the baseline logistic regression model. Random Forest is well-suited for this problem because it can capture complex, non-linear relationships between environmental variables and PFAS contamination.
+
+The model was trained using 5-fold cross-validation and evaluated using the area under the ROC curve (AUROC), along with sensitivity and specificity. The tuning parameter mtry, which controls the number of predictors considered at each split, was optimized during training.
+
+The results show a significant improvement over logistic regression. The optimal model, with mtry = 7, achieved an AUROC of approximately 0.982, indicating excellent predictive performance. Additionally, the model achieved a sensitivity of approximately 0.897 and a specificity of approximately 0.971.
+
+This represents a substantial improvement compared to the baseline model, which failed to correctly identify any contaminated wells. In contrast, the Random Forest model successfully identifies nearly 90% of contaminated wells while maintaining high accuracy for non-contaminated wells.
+
+These results demonstrate that Random Forest is highly effective for modeling PFAS contamination, particularly due to its ability to handle non-linear relationships and complex environmental interactions.
+
+```{r}
+#svm
+set.seed(123)
+
+svm_model <- train(target ~ .,
+                   data = train_data,
+                   method = "svmRadial",
+                   metric = "ROC",
+                   trControl = ctrl,
+                   tuneLength = 5,
+                   preProcess = c("center", "scale"))
+
+svm_model
+plot(svm_model)
+```
+A Support Vector Machine (SVM) with a radial basis function kernel was implemented as an additional advanced model to compare performance with Random Forest. The model required feature scaling, and predictors were centered and standardized prior to training. The cost parameter (C) was tuned using cross-validation to optimize model performance.
+
+The best-performing SVM model, with C = 4, achieved an AUROC of approximately 0.743. While this represents an improvement over logistic regression, the model’s sensitivity was relatively low (approximately 0.21), indicating limited ability to correctly identify contaminated wells. Specificity remained high at approximately 0.95, suggesting the model is more effective at identifying non-contaminated wells.
+
+During training, several warnings were observed indicating instability in prediction calculations for certain resampling folds. This suggests that the SVM model may struggle with the structure of the dataset, particularly due to class imbalance and complex feature relationships.
+
+Overall, while SVM provides moderate improvement over the baseline model, it is significantly outperformed by Random Forest. This highlights the importance of selecting models that can effectively capture non-linear relationships and handle imbalanced environmental data.
+
+```{r}
+#kNN
+set.seed(123)
+
+knn_model <- train(target ~ .,
+                   data = train_data,
+                   method = "knn",
+                   metric = "ROC",
+                   trControl = ctrl,
+                   tuneLength = 10,
+                   preProcess = c("center", "scale"))
+
+knn_model
+plot(knn_model)
+```
+A k-Nearest Neighbors (kNN) model was implemented as an additional non-linear classification method. Since kNN is a distance-based algorithm, all predictors were centered and scaled prior to training. The number of neighbors (k) was tuned using cross-validation to optimize model performance.
+
+The optimal model, with k = 5, achieved an AUROC of approximately 0.851. This represents a substantial improvement over both logistic regression and the SVM model. The kNN model also achieved a sensitivity of approximately 0.61 and a specificity of approximately 0.88, indicating a more balanced ability to detect both contaminated and non-contaminated wells.
+
+However, while kNN performed well, it was still outperformed by the Random Forest model, which achieved significantly higher predictive accuracy and sensitivity. This suggests that while kNN can capture some non-linear relationships, it may struggle with the complexity and high dimensionality of environmental data compared to ensemble methods.
+
+```{r}
+#evaluate
+
+# Predictions
+log_pred <- predict(log_model, test_data)
+rf_pred  <- predict(rf_model, test_data)
+svm_pred <- predict(svm_model, test_data)
+knn_pred <- predict(knn_model, test_data)
+
+# Confusion matrices
+confusionMatrix(log_pred, test_data$target, positive = "Yes", mode = "everything")
+confusionMatrix(rf_pred, test_data$target, positive = "Yes", mode = "everything")
+confusionMatrix(svm_pred, test_data$target, positive = "Yes", mode = "everything")
+confusionMatrix(knn_pred, test_data$target, positive = "Yes", mode = "everything")
+```
+
+The final evaluation of all models was conducted using the test dataset to assess performance on unseen data. The logistic regression model performed poorly, achieving an accuracy of 71% but a sensitivity of 0, indicating that it failed to identify any contaminated wells. This confirms that the baseline model is not suitable for this classification problem.
+
+The Random Forest model significantly outperformed all other models, achieving an accuracy of approximately 95.7%, a sensitivity of 0.917, and a specificity of 0.973. This demonstrates that the model is highly effective at identifying both contaminated and non-contaminated wells, with a strong balance between false positives and false negatives.
+
+The Support Vector Machine model showed limited improvement over logistic regression, with low sensitivity and difficulty detecting contaminated wells. The k-Nearest Neighbors model performed better, achieving more balanced results, but still did not reach the performance level of the Random Forest model.
+
+Overall, the Random Forest model was selected as the optimal model due to its superior predictive performance and ability to capture complex, non-linear relationships in the data. These results suggest that ensemble methods are highly effective for predicting PFAS contamination and can be used as a reliable tool for identifying high-risk wells.
+
+```{r}
+#AUC 
+
+# Predicted probabilities
+log_prob <- predict(log_model, test_data, type = "prob")[, "Yes"]
+rf_prob  <- predict(rf_model, test_data, type = "prob")[, "Yes"]
+svm_prob <- predict(svm_model, test_data, type = "prob")[, "Yes"]
+knn_prob <- predict(knn_model, test_data, type = "prob")[, "Yes"]
+
+# ROC objects
+log_roc <- roc(test_data$target, log_prob, levels = c("No", "Yes"))
+rf_roc  <- roc(test_data$target, rf_prob, levels = c("No", "Yes"))
+svm_roc <- roc(test_data$target, svm_prob, levels = c("No", "Yes"))
+knn_roc <- roc(test_data$target, knn_prob, levels = c("No", "Yes"))
+
+# AUC values
+auc(log_roc)
+auc(rf_roc)
+auc(svm_roc)
+auc(knn_roc)
+```
+
+To further evaluate model performance, Receiver Operating Characteristic (ROC) curves and Area Under the Curve (AUC) values were computed for each model using the test dataset. AUC provides a measure of how well a model can distinguish between contaminated and non-contaminated wells, making it particularly useful for imbalanced classification problems.
+
+The Random Forest model achieved the highest AUC value of approximately 0.985, indicating excellent discrimination ability and near-perfect classification performance. The k-Nearest Neighbors model also performed well, with an AUC of approximately 0.881, followed by the Support Vector Machine model with an AUC of approximately 0.749. In contrast, the logistic regression model achieved an AUC of only 0.625, demonstrating limited predictive capability.
+
+These results further confirm that the Random Forest model is the most effective approach for this dataset, as it consistently outperforms other models across multiple evaluation metrics. The high AUC value indicates that the model can reliably differentiate between high-risk and low-risk wells, making it a strong candidate for real-world application.
+
+```{r}
+#comparisons
+get_metrics <- function(model_name, pred, prob, actual) {
+  cm <- confusionMatrix(pred, actual, positive = "Yes", mode = "everything")
+  roc_obj <- roc(actual, prob, levels = c("No", "Yes"))
+  
+  data.frame(
+    Model = model_name,
+    Accuracy = cm$overall["Accuracy"],
+    Sensitivity = cm$byClass["Sensitivity"],
+    Specificity = cm$byClass["Specificity"],
+    F1 = cm$byClass["F1"],
+    AUC = as.numeric(auc(roc_obj)))}
+
+comparison_table <- bind_rows(
+  get_metrics("Logistic Regression", log_pred, log_prob, test_data$target),
+  get_metrics("Random Forest", rf_pred, rf_prob, test_data$target),
+  get_metrics("SVM Radial", svm_pred, svm_prob, test_data$target),
+  get_metrics("kNN", knn_pred, knn_prob, test_data$target))
+
+comparison_table
+```
+
+A final model comparison table was created to evaluate all models using the same test dataset. The metrics included accuracy, sensitivity, specificity, F1 score, and AUC. These metrics were selected because the dataset is imbalanced, meaning accuracy alone could be misleading.
+
+The Random Forest model performed the best overall, achieving an accuracy of 95.7%, sensitivity of 91.7%, F1 score of 0.925, and AUC of 0.985. This means the model was highly effective at identifying contaminated wells while also correctly classifying non-contaminated wells. In comparison, logistic regression had a sensitivity of 0, meaning it failed to detect any contaminated wells. SVM performed only slightly better, while kNN showed stronger results but still did not match Random Forest.
+
+Based on these results, Random Forest was selected as the final model because it provided the strongest and most balanced predictive performance.
+
+```{r}
+#Variable importance for Random Forest
+rf_importance <- varImp(rf_model, scale = TRUE)
+
+rf_importance
+
+plot(rf_importance, main = "Random Forest Variable Importance")
+```
+
+Variable importance was analyzed using the Random Forest model to identify the key factors influencing PFAS contamination. The results show that geographic location, specifically latitude and longitude, are the most important predictors, indicating that contamination is highly location-dependent.
+
+In addition to location, environmental factors such as soil moisture, air pollution (PM2.5 and NO₂), and groundwater recharge were also identified as important contributors. These variables likely influence how PFAS chemicals move through the environment and accumulate in groundwater.
+
+In contrast, precipitation showed little to no importance in the model, suggesting that rainfall alone does not significantly impact PFAS contamination levels in this dataset.
+
+Overall, these findings highlight that both spatial and environmental factors play a critical role in predicting PFAS contamination, with geographic location being the strongest driver.
+
+```{r}
+#ROC curve plot
+
+plot(rf_roc, main = "ROC Curves for PFAS Classification Models")
+lines(log_roc, col = "coral")
+lines(svm_roc, col = "maroon")
+lines(knn_roc, col = "darkseagreen")
+
+legend(
+  "bottomright",
+  legend = c("Random Forest", "Logistic Regression", "SVM", "kNN"),
+  col = c("black", "coral", "maroon", "darkseagreen"),
+  lwd = 2)
+
+```
+
+Receiver Operating Characteristic (ROC) curves were plotted to visually compare the performance of all classification models. The ROC curve illustrates the trade-off between sensitivity and specificity across different classification thresholds.
+
+The Random Forest model consistently outperformed all other models, with its curve closest to the top-left corner of the plot, indicating superior classification performance. The k-Nearest Neighbors model also showed strong performance, while the Support Vector Machine model demonstrated moderate improvement over the baseline.
+
+In contrast, the logistic regression model performed poorly, with its ROC curve lying close to the diagonal reference line, indicating limited ability to distinguish between contaminated and non-contaminated wells.
+
+Overall, the ROC analysis confirms that the Random Forest model provides the most accurate and reliable predictions for PFAS contamination.
+
+
+SUMMARY: 
+
+This analysis aimed to predict PFAS contamination in groundwater using multiple classification models. The dataset contained approximately 26,900 observations with environmental and geographic predictors, and a binary target variable indicating whether contamination levels were high. The data was moderately imbalanced, with about 29% contaminated wells.
+
+The dataset was split into training (80%) and testing (20%) sets using stratified sampling to preserve class proportions. Models were trained using 5-fold cross-validation and evaluated using metrics appropriate for imbalanced data, including sensitivity, specificity, F1 score, and AUC.
+
+A logistic regression model was first used as a baseline. However, it performed poorly, achieving a sensitivity of 0 and failing to identify any contaminated wells. This highlighted the limitations of linear models for this problem.
+
+Three advanced models were then implemented: Random Forest, Support Vector Machine (SVM), and k-Nearest Neighbors (kNN). Among these, the Random Forest model significantly outperformed all others. It achieved an accuracy of 95.7%, sensitivity of 91.7%, F1 score of 0.925, and an AUC of 0.985, demonstrating excellent predictive performance and strong balance between identifying contaminated and non-contaminated wells.
+
+The kNN model showed moderate performance, with an AUC of 0.881 and sensitivity of 0.668, while the SVM model performed weaker, with an AUC of 0.749 and low sensitivity. ROC curve analysis further confirmed that the Random Forest model provided the best classification performance.
+
+Variable importance analysis revealed that geographic location (latitude and longitude) were the most influential predictors, followed by environmental factors such as soil moisture, air pollution, and groundwater recharge. This suggests that PFAS contamination is highly location-dependent and influenced by environmental conditions.
+
+Overall, the Random Forest model was selected as the optimal approach due to its superior accuracy, strong detection of contaminated wells, and ability to capture complex, non-linear relationships. These results indicate that machine learning models, particularly ensemble methods, can serve as effective tools for identifying high-risk wells and supporting cost-efficient environmental monitoring.
