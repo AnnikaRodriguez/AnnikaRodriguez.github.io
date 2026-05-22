@@ -1,0 +1,123 @@
+---
+title: "Customer Retention"
+author: "Annika Rodriguez"
+date: "2026-04-20"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+df <- read.csv("AcquisitionRetention.csv")
+
+str(df)
+summary(df)
+colSums(is.na(df))
+```
+
+```{r}
+library(tidyverse)
+
+df <- read.csv("AcquisitionRetention.csv")
+
+# Remove unnecessary columns
+df <- df %>%
+  select(-X, -customer)
+
+# Convert variables
+df$acquisition <- as.factor(df$acquisition)
+df$industry    <- as.factor(df$industry)
+
+# Final check
+str(df)
+summary(df)
+```
+
+```{r}
+write.csv(df, "clean_customerretention_dataset.csv", row.names = FALSE)
+```
+
+```{r}
+getwd()
+```
+
+```{r}
+library(caret)
+
+set.seed(123)
+
+train_index <- createDataPartition(df$acquisition, p = 0.80, list = FALSE)
+
+train_data <- df[train_index, ]
+test_data  <- df[-train_index, ]
+```
+
+```{r}
+# Vis 1 - distribution of target
+
+library(ggplot2)
+
+ggplot(df, aes(x = acquisition)) +
+  geom_bar(fill = "hotpink") +
+  labs(title = "Distribution of Customer Acquisition",
+       x = "Acquisition (0 = No, 1 = Yes)",
+       y = "Number of Customers") +
+  theme_minimal()
+```
+
+Figure X shows the distribution of the target variable, customer acquisition. The results indicate that a larger proportion of customers were acquired (1) compared to those who were not (0). Specifically, approximately 67.6% of customers were acquired, while 32.4% were not. This suggests a moderate class imbalance in the dataset, which is important to consider when evaluating model performance.
+
+```{r}
+# Vis 2 - One Key Predictor vs Target
+ggplot(df, aes(x = acquisition, y = profit)) +
+  geom_boxplot(fill = "lightgreen") +
+  labs(title = "Profit by Acquisition Outcome",
+       x = "Acquisition",
+       y = "Profit") +
+  theme_minimal()
+```
+
+Figure X shows the relationship between profit and customer acquisition. Customers who were acquired exhibit significantly higher profit values compared to those who were not acquired, who tend to have negative or low profit. This clear separation suggests that profit is a strong predictor of acquisition and is likely to play an important role in the predictive models.
+
+
+```{r}
+# Logistic Regression Model
+
+# Train model
+
+log_model <- glm(acquisition ~ ., data = train_data, family = "binomial")
+
+summary(log_model)
+```
+
+The logistic regression model produced convergence warnings, indicating the presence of near-perfect separation in the data. This occurs when one or more predictors strongly distinguish between outcome classes. Based on exploratory analysis, profit appears to be a key variable driving this separation, as customers who were acquired exhibit significantly higher profit values than those who were not.
+
+As a result, the model assigns extreme probabilities (close to 0 or 1), which leads to instability in coefficient estimates. While this limits interpretability of individual coefficients, it suggests that the predictors are highly effective at distinguishing between acquired and non-acquired customers.
+
+
+```{r}
+# Predictions
+
+# Probabilities
+log_probs <- predict(log_model, newdata = test_data, type = "response")
+
+# Convert to class
+log_pred <- ifelse(log_probs > 0.5, 1, 0)
+log_pred <- as.factor(log_pred)
+
+# Match levels
+log_pred <- factor(log_pred, levels = levels(test_data$acquisition))
+```
+
+
+
+```{r}
+#Evaluation
+confusionMatrix(log_pred, test_data$acquisition)
+```
+
+
+
+
+
+
