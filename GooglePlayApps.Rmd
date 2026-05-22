@@ -1,0 +1,274 @@
+---
+title: "What Makes an App Successful?"
+author: "Annika Rodriguez"
+date: "2026-05-01"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(pROC)
+library(corrplot)
+
+apps <- read.csv("~/Documents/MSDA/Spring 2026/Data Analytics Application/Final Project/Google Play Store/archive (5)/googleplaystore.csv")
+reviews <- read.csv("~/Documents/MSDA/Spring 2026/Data Analytics Application/Final Project/Google Play Store/archive (5)/googleplaystore_user_reviews.csv")
+```
+
+
+```{r}
+apps_clean <- apps |>
+  filter(!is.na(Rating)) |>
+  distinct(App, .keep_all = TRUE) |>
+  mutate(
+    Reviews = suppressWarnings(as.numeric(Reviews)),
+    Installs = gsub("[+,]", "", Installs),
+    Installs = suppressWarnings(as.numeric(Installs)),
+    
+    Price = gsub("[$]", "", Price),
+    Price = suppressWarnings(as.numeric(Price)),
+    
+    Type = as.factor(Type),
+    Category = as.factor(Category),
+    Content.Rating = as.factor(Content.Rating),
+
+    High_Performance = ifelse(Installs >= 1000000, "Yes", "No"),
+    High_Performance = as.factor(High_Performance)) |>
+  filter(!is.na(Reviews), !is.na(Installs), !is.na(Price), !is.na(Type),
+         Category != "1.9")
+
+str(apps_clean)
+summary(apps_clean)
+dim(apps_clean)
+```
+
+
+```{r}
+reviews_clean <- reviews |> 
+  filter(!is.na(Sentiment_Polarity), !is.na(Sentiment_Subjectivity)) |> 
+  group_by(App) |> 
+  summarize(
+    Avg_Sentiment_Polarity = mean(Sentiment_Polarity, na.rm = TRUE),
+    Avg_Sentiment_Subjectivity = mean(Sentiment_Subjectivity, na.rm = TRUE),
+    Positive_Reviews = sum(Sentiment == "Positive", na.rm = TRUE),
+    Negative_Reviews = sum(Sentiment == "Negative", na.rm = TRUE),
+    Neutral_Reviews = sum(Sentiment == "Neutral", na.rm = TRUE))
+
+str(reviews_clean)
+summary(reviews_clean)
+dim(reviews_clean)
+```
+
+
+```{r}
+#Merge datasets
+final_data <- apps_clean |> 
+  left_join(reviews_clean, by = "App") |> 
+  mutate(
+    Avg_Sentiment_Polarity = ifelse(is.na(Avg_Sentiment_Polarity), 0, Avg_Sentiment_Polarity),
+    Avg_Sentiment_Subjectivity = ifelse(is.na(Avg_Sentiment_Subjectivity), 0, Avg_Sentiment_Subjectivity),
+    Positive_Reviews = ifelse(is.na(Positive_Reviews), 0, Positive_Reviews),
+    Negative_Reviews = ifelse(is.na(Negative_Reviews), 0, Negative_Reviews),
+    Neutral_Reviews = ifelse(is.na(Neutral_Reviews), 0, Neutral_Reviews))
+
+final_data <- final_data |>
+  filter(Category != "1.9")
+final_data$Category <- droplevels(final_data$Category)
+
+str(final_data)
+summary(final_data)
+dim(final_data)
+```
+
+
+EDA CHARTS
+
+```{r}
+#distribution of app ratings 
+ggplot(final_data, aes(x = Rating)) +
+  geom_histogram(
+    bins = 30,
+    fill = "#4285F4",
+    color = "black") +
+  labs(title = "Distribution of App Ratings",
+       x = "App Rating",
+       y = "Number of Applications") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 12))
+```
+
+
+
+```{r}
+#Free vs Paid ratings
+ggplot(final_data, aes(x = Type, y = Rating, fill = Type)) +
+  geom_boxplot() +
+  labs(title = "Ratings by App Type",
+       x = "App Type",
+       y = "Rating") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 12))
+```
+
+```{r}
+#reviews vs installs
+ggplot(final_data, aes(x = Reviews, y = Installs)) +
+  geom_point(alpha = 0.4) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = "Relationship Between Reviews and Installs",
+       x = "Reviews (Log Scale)",
+       y = "Installs (Log Scale)") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 12))
+```
+
+```{r}
+#Distribution of User Review Sentiment
+reviews |>
+  filter(!is.na(Sentiment),
+         Sentiment != "nan") |>
+  ggplot(aes(x = Sentiment, fill = Sentiment)) +
+  geom_bar() +
+  scale_fill_manual(values = c(
+    "Positive" = "lightgreen",
+    "Neutral" = "gold",
+    "Negative" = "tomato")) +
+  labs(title = "Distribution of User Review Sentiment",
+       x = "Sentiment",
+       y = "Number of Reviews") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 12))
+```
+
+```{r}
+#top categories by average rating
+final_data |> 
+  group_by(Category) |> 
+  summarise(Avg_Rating = mean(Rating, na.rm = TRUE)) |> 
+  arrange(desc(Avg_Rating)) |> 
+  head(10) |> 
+  ggplot(aes(x = reorder(Category, Avg_Rating), y = Avg_Rating)) +
+  geom_col(fill = "lightpink") +
+  coord_flip() +
+  labs(title = "Top 10 Categories by Average Rating",
+       x = "Category",
+       y = "Average Rating") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 12))
+```
+
+```{r}
+# correlation heatmap
+numeric_data <- final_data |>
+  select(
+    Rating,
+    Reviews,
+    Installs,
+    Price,
+    Avg_Sentiment_Polarity,
+    Avg_Sentiment_Subjectivity,
+    Positive_Reviews,
+    Negative_Reviews,
+    Neutral_Reviews)
+
+cor_matrix <- cor(numeric_data)
+
+corrplot( cor_matrix, method = "color", type = "upper", tl.cex = 0.8, number.cex = 0.7)
+```
+
+
+
+Hypothesis Tests
+
+```{r}
+# Ttest Do free and paid apps have different ratings?
+t.test(Rating ~ Type, data = final_data)
+```
+
+```{r}
+# correlation Are reviews related to ratings?
+cor.test(final_data$Reviews, final_data$Rating)
+```
+
+```{r}
+#ANOVA Do ratings differ by category?
+anova_model <- aov(Rating ~ Category, data = final_data)
+summary(anova_model)
+```
+
+
+Modeling
+
+```{r}
+model_data <- final_data |> 
+  select(High_Performance, Rating, Reviews, Price, Type,
+         Avg_Sentiment_Polarity, Avg_Sentiment_Subjectivity) |> 
+  na.omit()
+
+set.seed(123)
+train_index <- createDataPartition(model_data$High_Performance, p = 0.8, list = FALSE)
+
+train_data <- model_data[train_index, ]
+test_data <- model_data[-train_index, ]
+```
+
+```{r}
+#logistic Regression
+log_model <- glm(High_Performance ~ ., data = train_data, family = "binomial")
+
+log_probs <- predict(log_model, test_data, type = "response")
+log_preds <- ifelse(log_probs > 0.5, "Yes", "No")
+log_preds <- as.factor(log_preds)
+
+confusionMatrix(log_preds, test_data$High_Performance, positive = "Yes")
+```
+
+```{r}
+#Random Forest
+set.seed(123)
+
+rf_model <- randomForest(High_Performance ~ ., data = train_data, ntree = 500, importance = TRUE)
+
+rf_preds <- predict(rf_model, test_data)
+
+confusionMatrix(rf_preds, test_data$High_Performance, positive = "Yes")
+```
+
+```{r}
+#variable importance
+varImpPlot(rf_model)
+```
+
+```{r}
+#ROC curve for Random forest
+rf_probs <- predict(rf_model, test_data, type = "prob")[, "Yes"]
+
+roc_rf <- roc(test_data$High_Performance, rf_probs)
+
+plot(roc_rf,
+     main = "ROC Curve - Random Forest",
+     col = "red",
+     lwd = 3)
+
+auc(roc_rf)
+```
+
+
+
+
+
+
