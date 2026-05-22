@@ -1,0 +1,438 @@
+---
+title: "Final Code Customer Retention"
+author: "Annika Rodriguez"
+date: "2026-04-23"
+output: html_document
+---
+
+ANNIKA
+
+```{r}
+# Libraries
+library(tidyverse)
+library(caret)
+
+# Load dataset
+
+df <- read.csv("clean_customerretention_dataset.csv")
+
+df$acquisition <- as.factor(df$acquisition)
+df$industry    <- as.factor(df$industry)
+
+# Check structure
+str(df)
+summary(df)
+```
+
+
+
+```{r}
+#Identify Target Variable
+table(df$acquisition)
+prop.table(table(df$acquisition))
+```
+
+
+
+```{r}
+colnames(df)
+head(df)
+```
+
+
+```{r}
+#train/test split
+
+set.seed(123)
+
+train_index <- createDataPartition(df$acquisition, p = 0.80, list = FALSE)
+
+train_data <- df[train_index, ]
+test_data  <- df[-train_index, ]
+
+```
+
+
+
+```{r}
+#EDA visial ex 1
+
+ggplot(df, aes(x = acquisition)) +
+  geom_bar(fill = "lightpink") +
+  labs(title = "Distribution of Customer Acquisition",
+       x = "Acquisition (0 = No, 1 = Yes)",
+       y = "Number of Customers") +
+  theme_minimal()
+```
+
+
+
+```{r}
+#EDA Visial ex 2
+
+ggplot(df, aes(x = acquisition, y = profit)) +
+  geom_boxplot(fill = "lightgreen") +
+  labs(title = "Profit by Acquisition Outcome",
+       x = "Acquisition",
+       y = "Profit") +
+  theme_minimal()
+```
+
+
+```{r}
+#logistic regression
+
+log_model <- glm(acquisition ~ ., data = train_data, family = "binomial")
+
+summary(log_model)
+```
+
+
+```{r}
+#predictions and evals
+
+log_probs <- predict(log_model, newdata = test_data, type = "response")
+
+log_pred <- ifelse(log_probs > 0.5, 1, 0)
+log_pred <- as.factor(log_pred)
+
+log_pred <- factor(log_pred, levels = levels(test_data$acquisition))
+
+confusionMatrix(log_pred, test_data$acquisition)
+```
+
+
+
+```{r}
+#removing squared terms to reduce redundancy
+log_mods <- glm(acquisition ~ . - acq_exp_sq - ret_exp_sq - freq_sq, data = train_data, family = "binomial")
+summary(log_mods)
+
+```
+
+
+```{r}
+#predictions and evals
+
+log_prob <- predict(log_mods, newdata = test_data, type = "response")
+
+log_preds <- ifelse(log_prob > 0.5, 1, 0)
+log_preds <- as.factor(log_preds)
+
+log_preds <- factor(log_preds, levels = levels(test_data$acquisition))
+
+confusionMatrix(log_preds, test_data$acquisition)
+```
+
+
+
+YASMINE
+
+
+```{r}
+# Libraries
+library(tidyverse)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(corrplot)
+
+# Load dataset
+df <- read.csv("clean_customerretention_dataset.csv")
+
+# Check structure
+str(df)
+summary(df)
+```
+
+#Identify Target Variable
+```{r}
+table(df$acquisition)        # or whatever the column is called
+prop.table(table(df$acquisition))
+```
+```{r}
+colnames(df)
+head(df)
+```
+
+#Step 3: EDA
+
+#1. Target Distribution
+```{r}
+ggplot(df, aes(x = factor(acquisition))) +
+  geom_bar(fill = "lightgreen") +
+  labs(title = "Customer Acquisition Distribution",
+       x = "Acquired (0 = No, 1 = Yes)",
+       y = "Count")
+```
+#2. Numeric Distributions
+```{r}
+num_vars <- df %>% select(where(is.numeric))
+
+num_vars |>
+  gather() |>
+  ggplot(aes(value)) +
+  geom_histogram(bins = 30, fill = "darkgreen") +
+  facet_wrap(~key, scales = "free")
+```
+#3. Boxplots vs Target 
+```{r}
+num_vars |>
+  mutate(acquired = df$acquisition) |>
+  gather(key, value, -acquisition) |>
+  ggplot(aes(x = factor(acquisition), y = value, fill = factor(acquisition))) +
+  geom_boxplot() +
+  facet_wrap(~key, scales = "free") +
+  theme(legend.position = "none")
+```
+#4. Correlation Heatmap
+```{r}
+corr_matrix <- cor(num_vars, use = "complete.obs")
+
+corrplot(corr_matrix, method = "color", type = "upper")
+```
+#Step 4: Train/Test Split
+```{r}
+set.seed(123)
+
+df$acquisition <- as.factor(df$acquisition)
+
+trainIndex <- createDataPartition(df$acquisition, p = 0.8, list = FALSE)
+
+train_data <- df[trainIndex, ]
+test_data  <- df[-trainIndex, ]
+
+dim(train_data)
+dim(test_data)
+prop.table(table(train_data$acquisition))
+prop.table(table(test_data$acquisition))
+```
+#Step 5: Decision Tree
+```{r}
+tree_model <- rpart(acquisition ~ ., 
+                    data = train_data, 
+                    method = "class",
+                    control = rpart.control(cp = 0.01))
+```
+
+```{r}
+rpart.plot(tree_model)
+```
+
+```{r}
+pred_tree <- predict(tree_model, test_data, type = "class")
+```
+
+```{r}
+confusionMatrix(pred_tree, test_data$acquisition)
+```
+#How strong is duration? 
+```{r}
+table(df$acquisition, df$duration == 0)
+```
+
+#Model without duration
+```{r}
+tree_model2 <- rpart(acquisition ~ . - duration, 
+                     data = train_data, 
+                     method = "class")
+
+pred_tree2 <- predict(tree_model2, test_data, type = "class")
+
+confusionMatrix(pred_tree2, test_data$acquisition)
+```
+#Drop leakage variables 
+```{r}
+df_clean <- df |>
+  select(acquisition, acq_exp, acq_exp_sq, profit, industry, revenue, employees)
+```
+
+#Train/Test split
+```{r}
+set.seed(123)
+
+df_clean$acquisition <- as.factor(df_clean$acquisition)
+
+trainIndex <- createDataPartition(df_clean$acquisition, p = 0.8, list = FALSE)
+
+train_clean <- df_clean[trainIndex, ]
+test_clean  <- df_clean[-trainIndex, ]
+```
+
+#Cleaned Decision Tree
+```{r}
+tree_clean <- rpart(acquisition ~ ., 
+                    data = train_clean, 
+                    method = "class")
+
+rpart.plot(tree_clean)
+```
+
+#Evaluate new model
+```{r}
+pred_clean <- predict(tree_clean, test_clean, type = "class")
+
+confusionMatrix(pred_clean, test_clean$acquisition)
+```
+
+#Keep only true "pre-acquisition" variable
+```{r}
+df_real <- df |>
+  select(acquisition, industry, revenue, employees)
+```
+
+#Re-run model
+```{r}
+set.seed(123)
+
+df_real$acquisition <- as.factor(df_real$acquisition)
+
+trainIndex <- createDataPartition(df_real$acquisition, p = 0.8, list = FALSE)
+
+train_real <- df_real[trainIndex, ]
+test_real  <- df_real[-trainIndex, ]
+
+tree_real <- rpart(acquisition ~ ., data = train_real, method = "class")
+
+rpart.plot(tree_real)
+
+pred_real <- predict(tree_real, test_real, type = "class")
+
+confusionMatrix(pred_real, test_real$acquisition)
+```
+
+PEYTON
+
+```{r}
+# Person C: Random Forest + Model Comparison 
+
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+```
+
+```{r}
+df <- read.csv("clean_customerretention_dataset.csv")
+```
+
+```{r}
+df_real <- df |>
+  select(acquisition, industry, revenue, employees)
+```
+
+```{r}
+df_real$acquisition <- as.factor(df_real$acquisition)
+```
+
+# train/test
+
+```{r}
+set.seed(123)
+
+trainIndex <- createDataPartition(df_real$acquisition, p = 0.8, list = FALSE)
+
+train_real <- df_real[trainIndex, ]
+test_real  <- df_real[-trainIndex, ]
+
+dim(train_real)
+dim(test_real)
+
+prop.table(table(train_real$acquisition))
+prop.table(table(test_real$acquisition))
+```
+
+# Log Regression
+
+```{r}
+set.seed(123)
+
+log_model <- train(
+  acquisition ~ .,
+  data = train_real,
+  method = "glm",
+  family = "binomial")
+
+log_pred <- predict(log_model, newdata = test_real)
+
+log_cm <- confusionMatrix(log_pred, test_real$acquisition)
+
+log_cm
+```
+
+# Decison Tree
+
+```{r}
+set.seed(123)
+
+tree_real <- rpart(
+  acquisition ~ .,
+  data = train_real,
+  method = "class")
+
+rpart.plot(tree_real)
+
+pred_real <- predict(tree_real, test_real, type = "class")
+
+tree_cm <- confusionMatrix(pred_real, test_real$acquisition)
+
+tree_cm
+```
+
+# Random Forest
+
+```{r}
+set.seed(123)
+
+rf_model <- train(
+  acquisition ~ .,
+  data = train_real,
+  method = "rf",
+  trControl = trainControl(method = "cv", number = 10),
+  tuneLength = 5)
+
+rf_model
+```
+Best mtry = 2
+Accuracy = 0.735
+Kappa = 0.383
+
+```{r}
+rf_pred <- predict(rf_model, newdata = test_real)
+
+rf_cm <- confusionMatrix(rf_pred, test_real$acquisition)
+
+rf_cm
+```
+
+```{r}
+rf_importance <- varImp(rf_model)
+
+rf_importance
+
+plot(rf_importance, top = 10,
+     main = "Random Forest Variable Importance")
+```
+
+# Model Comparison
+
+```{r}
+comparison <- data.frame(
+  Model = c("Logistic Regression", "Decision Tree", "Random Forest"),
+  Accuracy = c(
+    log_cm$overall["Accuracy"],
+    tree_cm$overall["Accuracy"],
+    rf_cm$overall["Accuracy"]),
+  Sensitivity = c(
+    log_cm$byClass["Sensitivity"],
+    tree_cm$byClass["Sensitivity"],
+    rf_cm$byClass["Sensitivity"]),
+  Specificity = c(
+    log_cm$byClass["Specificity"],
+    tree_cm$byClass["Specificity"],
+    rf_cm$byClass["Specificity"]))
+
+comparison
+```
+
